@@ -1,0 +1,4 @@
+/*
+ * Class Documents configuration file
+ */
+name:"documents",version:"0.1",tbl_name:"documents",instantiable:"1",description:"Gestore di documenti pubblici e privati categorizzati",removable:"1",folders:"contents/documents"
