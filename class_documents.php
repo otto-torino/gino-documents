@@ -191,8 +191,12 @@ class documents extends Controller
      */
     public function archive()
     {
+
+        $this->_registry->addCss($this->_class_www."/documents_".$this->_instance_name.".css");
         $order = cleanVar($_GET, 'o', 'string', '');
-        if(!$order) $order = 'insertion_date';
+        $dir = cleanVar($_GET, 'd', 'string', '');
+        if(!$order or !in_array($order, array('insertion_date', 'name', 'filesize'))) $order = 'insertion_date';
+        if(!$dir or $dir != 'asc') $dir = 'desc';
 
         if($this->userHasPerm('can_view_private')) {
             $private = true;
@@ -210,7 +214,7 @@ class documents extends Controller
             $ctg = cleanVar($_REQUEST, 'category', 'int', '');
         }
         $search_params = array();
-        $order_array = array('o' => $order);
+        $order_array = array('o' => $order, 'd' => $dir);
 
         $table = DocumentsItem::$table;
         $where[] = "instance='$this->_instance'";
@@ -233,8 +237,8 @@ class documents extends Controller
         $pagination = Loader::load('PageList', array($this->_ifp, $tot, 'array'));
         $limit = array($pagination->start(), $this->_ifp);
 
-        $documents = DocumentsItem::objects($this, array('where' => implode(' AND ', $where), 'limit' => $limit, 'order' => $order));
-        $view = new View($this->_view_dir, 'documents_archive');
+        $documents = DocumentsItem::objects($this, array('where' => implode(' AND ', $where), 'limit' => $limit, 'order' => $order.' '.$dir));
+        $view = new View($this->_view_dir, 'documents_archive_'.$this->_instance_name);
         $dict = array(
             'documents' => $documents,
             'pagination_summary' => $pagination->reassumedPrint(),
@@ -243,6 +247,7 @@ class documents extends Controller
             'plink' => $this->_plink,
             'base_url' => $this->_plink->aLink($this->_instance_name, 'archive', implode('&', $search_params)),
             'order' => $order,
+            'dir' => $dir,
             'form_search' => $this->formSearch(),
         );
 
@@ -251,6 +256,8 @@ class documents extends Controller
 
     public function formSearch()
     {
+        $this->_registry->addCss($this->_class_www."/documents_".$this->_instance_name.".css");
+
         loader::import('class', array('Form'));
         $gform = new Form('search_document', 'post', '');
 
@@ -265,11 +272,11 @@ class documents extends Controller
 
         $form = $gform->open('', false, '');
         $form .= $gform->cselect('category', $ctg, DocumentsCategory::getForSelect($this), _('Categoria'));
-        $form .= $gform->cinput('name', 'text', $name , _('Nome/Desc'), array('size' => 6));
+        $form .= $gform->cinput('name', 'text', $name , _('Nome/Desc'), array('size' => 8));
         $form .= $gform->cinput('submit_search_documents', 'submit', _('filtra'), '', array());
         $form .= $gform->close();
 
-        $view = new View($this->_view_dir, 'documents_form_search');
+        $view = new View($this->_view_dir, 'documents_form_search_'.$this->_instance_name);
         $dict = array(
             'form' => $form
         );
