@@ -4,17 +4,50 @@
  * @brief Contiene la classe documents, controller del modulo gestione di documenti
  * @author marco guidotti
  * @author abidibo
+ * @copyright 2014 Otto srl MIT License http://www.opensource.org/licenses/mit-license.php
  * @version 0.1
- * @date 2014-03-06
  */
-require_once('class.DocumentsCategory.php');
-require_once('class.DocumentsItem.php');
+
+namespace Gino\App\Documents;
+
+use \Gino\Loader;
+use \Gino\View;
+use \Gino\Form;
+use \Gino\Error;
+
+/** \mainpage Caratteristiche ed output disponibili per i template e le voci di menu.    
+ *
+ * CARATTERISTICHE
+ *
+ * Modulo di gestione documenti categorizzati
+ *
+ *
+ * OUTPUTS
+ * - archivio documenti
+ * - form di ricerca documenti
+ */
+
 /**
- * Class documents
- * @author marco guidotti <marco.guidotti@otto.to.it>
- * @author abidibo <abidibo@gmail.com>
+* @defgroup gino-documents
+* Modulo di gestione documenti categorizzati
+*
+* Il modulo contiene anche dei css, javascript e file di configurazione.
+*
+*/
+
+require_once('class.Category.php');
+require_once('class.Document.php');
+
+/**
+ * @ingroup gino-documents
+ * @brief Classe Controller per la gestione di documenti categorizzate.
+ *
+ * @version 0.1
+ * @copyright 2014 Otto srl MIT License http://www.opensource.org/licenses/mit-license.php
+ * @authors Marco Guidotti guidottim@gmail.com
+ * @authors abidibo abidibo@gmail.com
  */
-class documents extends Controller
+class documents extends \Gino\Controller
 {
 
     protected $_data_dir,
@@ -39,17 +72,6 @@ class documents extends Controller
 
         $this->_view_dir = dirname(__FILE__).OS.'views';
 
-        /* options
-        $this->_optionsValue = array(
-            'title'=>_('TItolo'),
-        );
-        $this->_title = htmlChars($this->setOption('title', array('value'=>$this->_optionsValue['title'])));
-        $this->_options = loader::load('Options', array($this->_class_name, $this->_instance));
-        $this->_optionsLabels = array(
-            "title"=>_("Titolo"), 
-        );
-         */
-
         $this->_ifp = 10;
     }
 
@@ -64,8 +86,8 @@ class documents extends Controller
         return array(
             "tables"=>array(
                 'documents_category',
-                'documents_item',
-                'documents_item_category',
+                'documents_document',
+                'documents_document_category',
             ),
             "css"=>array(
                 'documents.css',
@@ -92,46 +114,23 @@ class documents extends Controller
     {
         $this->requirePerm('can_admin');
 
-        /*
-         * delete documents items
-         */
-        $query = "SELECT id FROM ".DocumentsItem::$table." WHERE instance='$this->_instance'";
-        $a = $this->_db->selectquery($query);
-        if(sizeof($a)>0) {
-            foreach($a as $b) {
-                translation::deleteTranslations(DocumentsItem::$table, $b['id']);
-                $query = "DELETE FROM ".DocumentsItem::$table_categories." WHERE documentsitem_id='".$b['id']."'";	
-                $result = $this->_db->actionquery($query);
-            }
-        }
+        /* eliminazione items */
+        Document::deleteInstance($this);
+        /* eliminazione categorie */
+        Category::deleteInstance($this);
 
-        $query = "DELETE FROM ".DocumentsItem::$table." WHERE instance='$this->_instance'";	
-        $result = $this->_db->actionquery($query);
-
-        /*
-         * delete documents categories
-         */
-        $query = "SELECT id FROM ".DocumentsCategory::$table." WHERE instance='$this->_instance'";
-        $a = $this->_db->selectquery($query);
-        if(sizeof($a)>0) {
-            foreach($a as $b) {
-                translation::deleteTranslations(DocumentsCategory::$table, $b['id']);
-            }
-        }
-        $query = "DELETE FROM ".DocumentsCategory::$table." WHERE instance='$this->_instance'";	
-        $result = $this->_db->actionquery($query);
-
-        /*
-         * delete css files
-         */
+        /* eliminazione file css */
         $classElements = $this->getClassElements();
         foreach($classElements['css'] as $css) {
-            unlink(APP_DIR.OS.$this->_className.OS.baseFileName($css)."_".$this->_instance_name.".css");
+            unlink(APP_DIR.OS.$this->_class_name.OS.\Gino\baseFileName($css)."_".$this->_instance_name.".css");
         }
 
-        /*
-         * delete folder structure
-         */
+        /* eliminazione views */
+        foreach($classElements['views'] as $k => $v) {
+            unlink($this->_view_dir.OS.\Gino\baseFileName($k)."_".$this->_instance_name.".php");
+        }
+
+        /* eliminazione cartelle contenuti */
         foreach($classElements['folderStructure'] as $fld=>$fldStructure) {
             $this->_registry->pub->deleteFileDir($fld.OS.$this->_instance_name, true);
         }
@@ -193,8 +192,8 @@ class documents extends Controller
     {
 
         $this->_registry->addCss($this->_class_www."/documents_".$this->_instance_name.".css");
-        $order = cleanVar($_GET, 'o', 'string', '');
-        $dir = cleanVar($_GET, 'd', 'string', '');
+        $order = \Gino\cleanVar($_GET, 'o', 'string', '');
+        $dir = \Gino\cleanVar($_GET, 'd', 'string', '');
         if(!$order or !in_array($order, array('insertion_date', 'name', 'filesize'))) $order = 'insertion_date';
         if(!$dir or $dir != 'asc') $dir = 'desc';
 
@@ -206,17 +205,17 @@ class documents extends Controller
         }
 
         if(isset($_POST['submit_search_documents'])) {
-            $name = cleanVar($_POST, 'name', 'string', '');
-            $ctg = cleanVar($_POST, 'category', 'int', '');
+            $name = \Gino\cleanVar($_POST, 'name', 'string', '');
+            $ctg = \Gino\cleanVar($_POST, 'category', 'int', '');
         }
         else {
-            $name = cleanVar($_REQUEST, 'name', 'string', '');
-            $ctg = cleanVar($_REQUEST, 'category', 'int', '');
+            $name = \Gino\cleanVar($_REQUEST, 'name', 'string', '');
+            $ctg = \Gino\cleanVar($_REQUEST, 'category', 'int', '');
         }
         $search_params = array();
         $order_array = array('o' => $order, 'd' => $dir);
 
-        $table = DocumentsItem::$table;
+        $table = Document::$table;
         $where[] = "instance='$this->_instance'";
         if($name) {
             $where[] = "name LIKE '%".$name."%'";
@@ -224,7 +223,7 @@ class documents extends Controller
             $order_array['name'] = $name;
         }
         if($ctg) {
-            $where[] = "id IN (SELECT documentsitem_id FROM ".DocumentsItem::$table_categories." WHERE documentscategory_id='".$ctg."')";
+            $where[] = "id IN (SELECT document_id FROM ".Document::$table_categories." WHERE category_id='".$ctg."')";
             $search_params[] = "category=".$ctg;
             $order_array['category'] = $ctg;
         }
@@ -237,7 +236,7 @@ class documents extends Controller
         $pagination = Loader::load('PageList', array($this->_ifp, $tot, 'array'));
         $limit = array($pagination->start(), $this->_ifp);
 
-        $documents = DocumentsItem::objects($this, array('where' => implode(' AND ', $where), 'limit' => $limit, 'order' => $order.' '.$dir));
+        $documents = Document::objects($this, array('where' => implode(' AND ', $where), 'limit' => $limit, 'order' => $order.' '.$dir));
         $view = new View($this->_view_dir, 'documents_archive_'.$this->_instance_name);
         $dict = array(
             'documents' => $documents,
@@ -254,24 +253,30 @@ class documents extends Controller
         return $view->render($dict);
     }
 
+    /**
+     * @brief Vista ricerca documenti
+     * @description Questa vista presenta solamente un form che esegue la action sulla pagina in cui viene presentata.
+     *              Per avere utilità deve essere inserita in un contesto in cui compaer anche la vista archivio.
+     * @return form di ricerca
+     */
     public function formSearch()
     {
         $this->_registry->addCss($this->_class_www."/documents_".$this->_instance_name.".css");
 
-        loader::import('class', array('Form'));
+        Loader::import('class', array('\Gino\Form'));
         $gform = new Form('search_document', 'post', '');
 
         if(isset($_POST['submit_search_documents'])) {
-            $name = cleanVar($_POST, 'name', 'string', '');
-            $ctg = cleanVar($_POST, 'category', 'int', '');
+            $name = \Gino\cleanVar($_POST, 'name', 'string', '');
+            $ctg = \Gino\cleanVar($_POST, 'category', 'int', '');
         }
         else {
-            $name = cleanVar($_REQUEST, 'name', 'string', '');
-            $ctg = cleanVar($_REQUEST, 'category', 'int', '');
+            $name = \Gino\cleanVar($_REQUEST, 'name', 'string', '');
+            $ctg = \Gino\cleanVar($_REQUEST, 'category', 'int', '');
         }
 
         $form = $gform->open('', false, '');
-        $form .= $gform->cselect('category', $ctg, DocumentsCategory::getForSelect($this), _('Categoria'));
+        $form .= $gform->cselect('category', $ctg, Category::getForSelect($this), _('Categoria'));
         $form .= $gform->cinput('name', 'text', $name , _('Nome/Desc'), array('size' => 8));
         $form .= $gform->cinput('submit_search_documents', 'submit', _('filtra'), '', array());
         $form .= $gform->close();
@@ -285,15 +290,19 @@ class documents extends Controller
 
     }
 
+    /**
+     * @brief Download di un documento
+     * @return stream
+     */
     public function download()
     {
-        $id = cleanVar($_GET, 'id', 'int', '');
-        $doc = new DocumentsItem($id, $this);
+        $id = \Gino\cleanVar($_GET, 'id', 'int', '');
+        $doc = new Document($id, $this);
         if($doc->private && !$this->userHasPerm('can_view_private')) {
-            error::raise404();
+            Error::raise404();
         }
 
-        download($this->getBaseAbsPath().OS.$doc->filename);
+        \Gino\download($this->getBaseAbsPath().OS.$doc->filename);
     }
 
     /**
@@ -305,7 +314,7 @@ class documents extends Controller
     {
         $this->requirePerm('can_admin');
 
-        $block = cleanVar($_REQUEST, 'block', 'string', '');
+        $block = \Gino\cleanVar($_REQUEST, 'block', 'string', '');
         $method = 'manageDoc';
 
         $link_frontend = "<a href=\"".$this->_home."?evt[$this->_instance_name-$method]&block=frontend\">"._("Frontend")."</a>";
@@ -320,11 +329,11 @@ class documents extends Controller
             $sel_link = $link_frontend;
         }
         elseif($block=='category') {
-            $buffer = $this->manageDocumentsCategory();
+            $buffer = $this->manageCategory();
             $sel_link = $link_ctg;
         }
         else {
-            $buffer = $this->manageDocumentsItem();
+            $buffer = $this->manageDocument();
         }
 
         // groups privileges
@@ -347,12 +356,12 @@ class documents extends Controller
      *
      * @return interfaccia di amministrazione
      */
-    public function manageDocumentsCategory()
+    public function manageCategory()
     {
         $admin_table = Loader::load('AdminTable', array($this, array()));
 
         $buffer = $admin_table->backoffice(
-            'DocumentsCategory',
+            'Category',
             array(), // display options
             array(), // form options
             array()  // fields options
@@ -366,12 +375,12 @@ class documents extends Controller
      *
      * @return interfaccia di amministrazione
      */
-    public function manageDocumentsItem()
+    public function manageDocument()
     {
         $admin_table = Loader::load('AdminTable', array($this, array()));
 
         $buffer = $admin_table->backoffice(
-            'DocumentsItem',
+            'Document',
             array('list_display' => array('name', 'filename', 'filesize', 'private', 'insertion_date')), // display options
             array('removeFields' => array('filesize')), // form options
             array()  // fields options

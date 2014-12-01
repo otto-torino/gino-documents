@@ -1,17 +1,34 @@
 <?php
 /**
- * @file class.DocumentsCategory.php
- * @brief Class DocumentsCategory
+ * @file class.Category.php
+ * @brief Class Category
  * @author marco guidotti <marco.guidotti@otto.to.it>
  * @author abidibo <abidibo@gmail.com>
  * @version 0.1
- * @date 2014-03-06
+ * @copyright 2014 Otto srl MIT License http://www.opensource.org/licenses/mit-license.php
  */
-class DocumentsCategory extends Model
+
+namespace Gino\App\Documents;
+
+/**
+ * @ingroup gino-documents
+ * Classe tipo @ref Model che rappresenta una categoria di documenti.
+ *
+ * @version 0.1
+ * @copyright 2014 Otto srl MIT License http://www.opensource.org/licenses/mit-license.php
+ * @authors Marco Guidotti guidottim@gmail.com
+ * @authors abidibo abidibo@gmail.com
+ */
+class Category extends \Gino\Model
 {
-    private $_controller;
     public static $table = 'documents_category';
 
+    /**
+     * @brief Costruttore
+     * @param int $id id della categoria
+     * @param documents $instance istanza del controller
+     * @return istanza di @ref Category
+     */
     public function __construct($id, $instance)
     {
         $this->_controller = $instance;
@@ -24,7 +41,7 @@ class DocumentsCategory extends Model
 
         parent::__construct($id);
 
-        $this->_model_label = _('Categorie');
+        $this->_model_label = _('Categoria');
     }
 
     /**
@@ -34,7 +51,7 @@ class DocumentsCategory extends Model
      */
     function __toString()
     {
-        return (string) $this->name;
+        return (string) $this->ml('name');
     }
 
     /**
@@ -51,12 +68,17 @@ class DocumentsCategory extends Model
         return $structure;
     }
 
+    /**
+     * @brief Array associativo per popolare un input select
+     * @param documents $controller istanza del controller
+     * @return array associativo id=>nome
+     */
     public static function getForSelect($controller)
     {
         $objs = self::objects($controller);
         $res = array();
         foreach($objs as $obj) {
-            $res[$obj->id] = htmlChars($obj->name);
+            $res[$obj->id] = \Gino\htmlChars($obj->ml('name'));
         }
 
         return $res;
