@@ -1,11 +1,10 @@
 <?php
 /**
  * @file class.Document.php
- * @brief Class Document
+ * @brief Contiene la definizione ed implementazione della classe Gino.App.Documents.Document
  * @author marco guidotti <marco.guidotti@otto.to.it>
  * @author abidibo <abidibo@gmail.com>
  * @copyright 2014 Otto srl MIT License http://www.opensource.org/licenses/mit-license.php
- * @version 1.0.0
  */
 
 namespace Gino\App\Documents;
@@ -16,8 +15,7 @@ use \Gino\FileField;
 use \Gino\ManyToManyField;
 
 /**
- * @ingroup gino-documents
- * Classe tipo @ref Model che rappresenta una categoria di documenti.
+ * @brief Classe tipo Gino.Model che rappresenta un documento
  *
  * @version 1.0.0
  * @copyright 2014 Otto srl MIT License http://www.opensource.org/licenses/mit-license.php
@@ -33,8 +31,8 @@ class Document extends \Gino\Model
     /**
      * @brief Costruttore
      * @param int $id id del documento
-     * @param documents $instance istanza del controller
-     * @return istanza di @ref Document
+     * @param \Gino\App\Documents\documents $instance istanza di Gino.App.Documents.documents
+     * @return istanza di Gino.App.Documents.Document
      */
     public function __construct($id, $instance)
     {
@@ -57,9 +55,9 @@ class Document extends \Gino\Model
     }
 
     /**
-     * @brief Casting a stringa
+     * @brief Rappresentazione a stringa dell'oggetto
      *
-     * @return rappresentazione a stringa dell'oggetto
+     * @return nome documento
      */
     function __toString()
     {
@@ -69,16 +67,17 @@ class Document extends \Gino\Model
     /**
      * @brief Definizione della struttura del modello
      *
+     * @see Gino.Model::structure()
      * @param $id id dell'istanza
      *
-     * @return struttura del modello
+     * @return array, struttura del modello
      */
     public function structure($id)
     {
         $structure = parent::structure($id);
 
         $structure['private'] = new BooleanField(array(
-            'name'=>'private', 
+            'name'=>'private',
             'model'=>$this,
             'enum'=>array(1 => _('si'), 0 => _('no')),
         ));
@@ -123,7 +122,7 @@ class Document extends \Gino\Model
      */
     public function downloadUrl()
     {
-        return $this->_controller->getInstanceName().'/download/'.$this->id;
+        return $this->_controller->link($this->_controller, 'download', array('id' => $this->id));
     }
 }
 

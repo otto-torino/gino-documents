@@ -1,11 +1,10 @@
 <?php
 /**
  * @file class_documents.php
- * @brief Contiene la classe documents, controller del modulo gestione di documenti
+ * @brief Contiene la definizione ed implementazione della classe Gino.App.Documents.documents
  * @author marco guidotti
  * @author abidibo
  * @copyright 2014 Otto srl MIT License http://www.opensource.org/licenses/mit-license.php
- * @version 1.0.0
  */
 
 namespace Gino\App\Documents;
@@ -15,32 +14,11 @@ use \Gino\View;
 use \Gino\Form;
 use \Gino\Error;
 
-/** \mainpage Caratteristiche ed output disponibili per i template e le voci di menu.    
- *
- * CARATTERISTICHE
- *
- * Modulo di gestione documenti categorizzati
- *
- *
- * OUTPUTS
- * - archivio documenti
- * - form di ricerca documenti
- */
-
-/**
-* @defgroup gino-documents
-* Modulo di gestione documenti categorizzati
-*
-* Il modulo contiene anche dei css, javascript e file di configurazione.
-*
-*/
-
 require_once('class.Category.php');
 require_once('class.Document.php');
 
 /**
- * @ingroup gino-documents
- * @brief Classe Controller per la gestione di documenti categorizzate.
+ * @brief Classe di tipo Gino.Controller per la gestione di documenti categorizzati
  *
  * @version 1.0.0
  * @copyright 2014 Otto srl MIT License http://www.opensource.org/licenses/mit-license.php
@@ -57,7 +35,7 @@ class documents extends \Gino\Controller
      *
      * @param $instance_id id istanza
      *
-     * @return oggetto di tipo documents
+     * @return istanza di Gino.App.Documents.documents
      */
     public function __construct($instance_id)
     {
@@ -69,8 +47,7 @@ class documents extends \Gino\Controller
     /**
      * @brief Restituisce alcune proprietà della classe utili per la generazione di nuove istanze
      *
-     * @static
-     * @return lista delle proprietà utilizzate per la creazione di istanze di tipo documents
+     * @return array associativo di proprietà utilizzate per la creazione di istanze di tipo news (tabelle, css, viste, folders)
      */
     public static function getClassElements() 
     {
@@ -94,12 +71,11 @@ class documents extends \Gino\Controller
     }
 
     /**
-     * @brief Metodo invocato quando viene eliminata un'istanza di tipo documents
+     * @brief Eliminazione istanza
      *
-     * Si esegue la cancellazione dei dati da db e l'eliminazione di file e directory 
-     * 
-     * @access public
-     * @return bool il risultato dell'operazione
+     * Si esegue la cancellazione dei dati da db e l'eliminazione di file e directory
+     *
+     * @return TRUE
      */
     public function deleteInstance() 
     {
@@ -126,13 +102,16 @@ class documents extends \Gino\Controller
             \Gino\deleteFileDir($fld.OS.$this->_instance_name, true);
         }
 
-        return true;
+        return TRUE;
     }
 
     /**
-     * @brief Metodi pubblici disponibili per inserimento in layout a menu
+     * @brief Definizione dei metodi pubblici che forniscono un output per il front-end
      *
-     * @return lista metodi pubblici
+     * Questo metodo viene letto dal motore di generazione dei layout (metodi non presenti nel file documents.ini) e dal motore di generazione
+     * di voci di menu (metodi presenti nel file documents.ini) per presentare una lista di output associati all'istanza di classe.
+     *
+     * @return array associativo NOME_METODO => array('label' => LABEL, 'permissions' => PERMESSI)
      */
     public static function outputFunctions() 
     {
@@ -143,10 +122,10 @@ class documents extends \Gino\Controller
 
         return $list;
     }
-    
+
     /**
      * @brief View public output
-     * 
+     *
      * @param \Gino\Http\Request istanza di Gino.Http.Request
      * @return Gino.Http.Response
      */
@@ -160,10 +139,10 @@ class documents extends \Gino\Controller
         if(!$dir or $dir != 'asc') $dir = 'desc';
 
         if($this->userHasPerm('can_view_private')) {
-            $private = true;
+            $private = TRUE;
         }
         else {
-            $private = false;
+            $private = FALSE;
         }
 
         if(isset($request->POST['submit_search_documents'])) {
@@ -199,7 +178,8 @@ class documents extends \Gino\Controller
         $limit = $paginator->limitQuery();
 
         $documents = Document::objects($this, array('where' => implode(' AND ', $where), 'limit' => $limit, 'order' => $order.' '.$dir));
-        
+
+        $view = new View($this->_view_dir, 'documents_archive_'.$this->_instance_name);
         $dict = array(
             'documents' => $documents,
             'pagination' => $paginator->pagination(),
@@ -210,22 +190,21 @@ class documents extends \Gino\Controller
             'form_search' => $this->formSearch(),
         );
 
-        $view = new View($this->_view_dir, 'documents_archive_'.$this->_instance_name);
         $document = new \Gino\Document($view->render($dict));
         return $document();
     }
 
     /**
-     * @brief Vista ricerca documenti
+     * @brief Form di ricerca documenti
      * @description Questa vista presenta solamente un form che esegue la action sulla pagina in cui viene presentata.
      *              Per avere utilità deve essere inserita in un contesto in cui compaer anche la vista archivio.
      * 
-     * @return form di ricerca
+     * @return html, form di ricerca
      */
     public function formSearch()
     {
         $request = $this->_registry->request;
-        
+
         $this->_registry->addCss($this->_class_www."/documents_".$this->_instance_name.".css");
 
         Loader::import('class', array('\Gino\Form'));
@@ -264,24 +243,24 @@ class documents extends \Gino\Controller
     public function download(\Gino\Http\Request $request)
     {
         $doc_id = \Gino\cleanVar($request->GET, 'id', 'int', '');
-        
+
         if($doc_id)
         {
-        	$doc = new Document($doc_id, $this);
-        	if($doc->private && !$this->userHasPerm('can_view_private')) {
-            	Error::raise404();
-        	}
-        	
-        	return \Gino\download($this->getBaseAbsPath().OS.$doc->filename);
+            $doc = new Document($doc_id, $this);
+            if($doc->private && !$this->userHasPerm('can_view_private')) {
+                throw new \Gino\Exception\Exception404();
+            }
+
+            return \Gino\download($this->getBaseAbsPath().OS.$doc->filename);
         }
-    	else {
+        else {
             throw new \Gino\Exception\Exception404();
         }
     }
 
     /**
-     * @brief Backoffice
-     * 
+     * @brief Interfaccia di amministrazione del modulo
+     *
      * @param \Gino\Http\Request istanza di Gino.Http.Request
      * @return Gino.Http.Response backend di amministrazione del modulo
      */
@@ -289,12 +268,11 @@ class documents extends \Gino\Controller
     {
         $this->requirePerm('can_admin');
 
-        $block = \Gino\cleanVar($request->REQUEST, 'block', 'string', '');
+        $block = \Gino\cleanVar($request->GET, 'block', 'string', '');
 
         $link_dft = sprintf('<a href="%s">%s</a>', $this->linkAdmin(), _('Documenti'));
         $link_ctg = sprintf('<a href="%s">%s</a>', $this->linkAdmin(array(), 'block=category'), _('Categorie'));
         $link_frontend = sprintf('<a href="%s">%s</a>', $this->linkAdmin(array(), 'block=frontend'), _('Frontend'));
-
         $sel_link = $link_dft;
 
         if($block == 'frontend' && $this->userHasPerm('can_admin')) {
@@ -308,8 +286,8 @@ class documents extends \Gino\Controller
         else {
             $backend = $this->manageDocument();
         }
-        
-    	if(is_a($backend, '\Gino\Http\Response')) {
+
+        if(is_a($backend, '\Gino\Http\Response')) {
             return $backend;
         }
 
@@ -326,9 +304,9 @@ class documents extends \Gino\Controller
     }
 
     /**
-     * @brief Interfaccia di amministrazione DocumentsCategory
+     * @brief Interfaccia di amministrazione categorie
      *
-     * @return interfaccia di amministrazione
+     * @return Gino.Http.Redirect oppure html, interfaccia di amministrazione
      */
     public function manageCategory()
     {
@@ -345,9 +323,9 @@ class documents extends \Gino\Controller
     }
 
     /**
-     * @brief Interfaccia di amministrazione DocumentsItem
+     * @brief Interfaccia di amministrazione documenti
      *
-     * @return interfaccia di amministrazione
+     * @return Gino.Http.Redirect oppure html, interfaccia di amministrazione
      */
     public function manageDocument()
     {

@@ -1,18 +1,16 @@
 <?php
 /**
  * @file class.Category.php
- * @brief Class Category
+ * @brief Contiene la definizione ed implementazione della classe Gino.App.Documents.Category
  * @author marco guidotti <marco.guidotti@otto.to.it>
  * @author abidibo <abidibo@gmail.com>
- * @version 1.0.0
  * @copyright 2014 Otto srl MIT License http://www.opensource.org/licenses/mit-license.php
  */
 
 namespace Gino\App\Documents;
 
 /**
- * @ingroup gino-documents
- * Classe tipo @ref Model che rappresenta una categoria di documenti.
+ * @brief Classe di tipo Gino.Model che rappresenta una categoria di documenti
  *
  * @version 1.0.0
  * @copyright 2014 Otto srl MIT License http://www.opensource.org/licenses/mit-license.php
@@ -26,8 +24,8 @@ class Category extends \Gino\Model
     /**
      * @brief Costruttore
      * @param int $id id della categoria
-     * @param documents $instance istanza del controller
-     * @return istanza di @ref Category
+     * @param \Gino\App\Documents\documents $instance istanza di Gino.App.Documents.documents
+     * @return istanza di Gino.App.Documents.Category
      */
     public function __construct($id, $instance)
     {
@@ -45,9 +43,9 @@ class Category extends \Gino\Model
     }
 
     /**
-     * @brief Casting a stringa
+     * @brief Rappresentazione a stringa dell'oggetto
      *
-     * @return rappresentazione a stringa dell'oggetto
+     * @return nome categoria
      */
     function __toString()
     {
@@ -57,9 +55,10 @@ class Category extends \Gino\Model
     /**
      * @brief Definizione della struttura del modello
      *
+     * @see Gino.Model::structure()
      * @param $id id dell'istanza
      *
-     * @return struttura del modello
+     * @return array, struttura del modello
      */
     public function structure($id)
     {
@@ -70,7 +69,7 @@ class Category extends \Gino\Model
 
     /**
      * @brief Array associativo per popolare un input select
-     * @param documents $controller istanza del controller
+     * @param \Gino\App\Documents\documents $controller istanza di Gino.App.Documents.documents
      * @return array associativo id=>nome
      */
     public static function getForSelect($controller)
@@ -84,4 +83,3 @@ class Category extends \Gino\Model
         return $res;
     }
 }
-

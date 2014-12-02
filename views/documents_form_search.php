@@ -1,11 +1,10 @@
 <?php
 /**
-* @file view/documents_form_search.php
-* @ingroup gino-documents
+* @file documents_form_search.php
 * @brief Template per la vista form di ricerca documenti
 *
 * Variabili disponibili:
-* - **form**: form di ricerca
+* - **form**: html, form di ricerca
 *
 * @version 1.0.0
 * @copyright 2014 Otto srl MIT License http://www.opensource.org/licenses/mit-license.php
