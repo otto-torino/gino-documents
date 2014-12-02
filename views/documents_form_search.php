@@ -7,7 +7,7 @@
 * Variabili disponibili:
 * - **form**: form di ricerca
 *
-* @version 0.1
+* @version 1.0.0
 * @copyright 2014 Otto srl MIT License http://www.opensource.org/licenses/mit-license.php
 * @authors Marco Guidotti guidottim@gmail.com
 * @authors abidibo abidibo@gmail.com

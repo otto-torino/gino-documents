@@ -6,16 +6,14 @@
 *
 * Variabili disponibili:
 * - **documents**: array di oggetti @ref Document
-* - **pagination_summary**: riassunto elementi paginazione (i.e. 1-10 di 100)
-* - **pagination_navigation**: pagine e navigazione
+* - **pagination**: pagine e riassunto elementi paginazione (i.e. 1-10 di 100)
 * - **search_params**: parametri di ricerca
-* - **plink**: istanza della classe @ref \Gino\Link
-* - **base_url**: url pagina
+* - **router**: istanza della classe @ref \Gino\Router
 * - **order**: campo di ordinamento
 * - **dir**: direzione di ordinamento
 * - **form_search**: form di ricerca
 *
-* @version 0.1
+* @version 1.0.0
 * @copyright 2014 Otto srl MIT License http://www.opensource.org/licenses/mit-license.php
 * @authors Marco Guidotti guidottim@gmail.com
 * @authors abidibo abidibo@gmail.com
@@ -30,9 +28,9 @@
     <table class="table table-bordered">
         <tr>
             <th><?= _('Categoria') ?></th>
-            <th style="white-space: nowrap"><a href="<?= $plink->addParams($base_url, 'o=name&d='.($dir == 'desc' ? 'asc' : 'desc'), true); ?>">Nome</a> <?= $order == 'name' ? '<span class="fa fa-arrow-circle-'.($dir == 'desc' ? 'down' : 'up').'"></span>' : '' ?></th>
-            <th style="white-space: nowrap"><a href="<?= $plink->addParams($base_url, 'o=filesize&d='.($dir == 'desc' ? 'asc' : 'desc'), true); ?>">Dimensione</a> <?= $order == 'filesize' ? '<span class="fa fa-arrow-circle-'.($dir == 'desc' ? 'down' : 'up').'"></span>' : '' ?></th>
-            <th style="white-space: nowrap"><a href="<?= $plink->addParams($base_url, 'o=insertion_date&d='.($dir == 'desc' ? 'asc' : 'desc'), true); ?>">Inserimento</a> <?= $order == 'insertion_date' ? '<span class="fa fa-arrow-circle-'.($dir == 'desc' ? 'down' : 'up').'"></span>' : '' ?></th>
+            <th style="white-space: nowrap"><a href="<?= $router->transformPathQueryString($search_params + array('o'=>'name', 'd'=>($dir == 'desc' ? 'asc' : 'desc'))); ?>">Nome</a> <?= $order == 'name' ? '<span class="fa fa-arrow-circle-'.($dir == 'desc' ? 'down' : 'up').'"></span>' : '' ?></th>
+            <th style="white-space: nowrap"><a href="<?= $router->transformPathQueryString($search_params + array('o'=>'filesize', 'd'=>($dir == 'desc' ? 'asc' : 'desc'))); ?>">Dimensione</a> <?= $order == 'filesize' ? '<span class="fa fa-arrow-circle-'.($dir == 'desc' ? 'down' : 'up').'"></span>' : '' ?></th>
+            <th style="white-space: nowrap"><a href="<?= $router->transformPathQueryString($search_params + array('o'=>'insertion_date', 'd'=>($dir == 'desc' ? 'asc' : 'desc'))); ?>">Inserimento</a> <?= $order == 'insertion_date' ? '<span class="fa fa-arrow-circle-'.($dir == 'desc' ? 'down' : 'up').'"></span>' : '' ?></th>
             <th><?= _('Descrizione') ?></th>
         </tr>
         <? foreach($documents as $doc): ?>
@@ -55,10 +53,7 @@
 
     <div class="">
         <div class="left">
-            <?= $pagination_navigation ?>
-        </div>
-        <div class="right">
-            <?= $pagination_summary ?>
+            <?= $pagination ?>
         </div>
         <div class="null"></div>
         </div>

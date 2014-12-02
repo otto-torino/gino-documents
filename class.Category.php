@@ -4,7 +4,7 @@
  * @brief Class Category
  * @author marco guidotti <marco.guidotti@otto.to.it>
  * @author abidibo <abidibo@gmail.com>
- * @version 0.1
+ * @version 1.0.0
  * @copyright 2014 Otto srl MIT License http://www.opensource.org/licenses/mit-license.php
  */
 
@@ -14,7 +14,7 @@ namespace Gino\App\Documents;
  * @ingroup gino-documents
  * Classe tipo @ref Model che rappresenta una categoria di documenti.
  *
- * @version 0.1
+ * @version 1.0.0
  * @copyright 2014 Otto srl MIT License http://www.opensource.org/licenses/mit-license.php
  * @authors Marco Guidotti guidottim@gmail.com
  * @authors abidibo abidibo@gmail.com
