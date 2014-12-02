@@ -1,8 +1,8 @@
-documents library for gino CMS by Otto Srl, MIT license
+Modulo Documenti per gino CMS by Otto Srl, MIT license {#mainpage}
 ===================================================================
 Release 1.0.0 - Requires gino 2.0
 
-Libreria per la gestione di documenti pubblici e privati categorizzati.   
+Libreria per la gestione di documenti pubblici e privati categorizzati.
 
 OUTPUTS
 ------------------------------

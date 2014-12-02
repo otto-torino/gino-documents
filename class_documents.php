@@ -7,6 +7,10 @@
  * @copyright 2014 Otto srl MIT License http://www.opensource.org/licenses/mit-license.php
  */
 
+/**
+ * @namespace Gino.App.Documents
+ * @description Namespace dell'applicazione Documenti
+ */
 namespace Gino\App\Documents;
 
 use \Gino\Loader;
