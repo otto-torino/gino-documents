@@ -109,7 +109,7 @@ class Document extends \Gino\Model
             'm2m_controller' => $this->_controller,
             'join_table' => self::$table_categories,
             'add_related' => true,
-            'add_related_url' => $this->_home.'?evt['.$this->_controller->getInstanceName().'-manageDoc]&block=category&insert=1',
+            'add_related_url' => $this->_controller->linkAdmin(array(), 'block=category&insert=1')
         ));
 
 
@@ -122,7 +122,7 @@ class Document extends \Gino\Model
      */
     public function downloadUrl()
     {
-        return $this->_controller->link($this->_controller, 'download', array('id' => $this->id));
+        return $this->_controller->link($this->_controller->getInstanceName(), 'download', array('id' => $this->id));
     }
 }
 

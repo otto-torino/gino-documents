@@ -223,7 +223,7 @@ class documents extends \Gino\Controller
             $ctg = \Gino\cleanVar($request->REQUEST, 'category', 'int', '');
         }
 
-        $form = $gform->open('', false, '');
+        $form = $gform->open($this->link($this->_instance_name, 'archive'), false, '');
         $form .= $gform->cselect('category', $ctg, Category::getForSelect($this), _('Categoria'));
         $form .= $gform->cinput('name', 'text', $name , _('Nome/Desc'), array('size' => 8));
         $form .= $gform->cinput('submit_search_documents', 'submit', _('filtra'), '', array());
@@ -246,7 +246,7 @@ class documents extends \Gino\Controller
      */
     public function download(\Gino\Http\Request $request)
     {
-        $doc_id = \Gino\cleanVar($request->GET, 'id', 'int', '');
+        $doc_id = \Gino\cleanVar($request->GET, 'id', 'int');
 
         if($doc_id)
         {
