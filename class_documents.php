@@ -1,25 +1,36 @@
 <?php
 /**
  * @file class_documents.php
- * @brief Contiene la classe documents, controller del modulo gestione di documenti
+ * @brief Contiene la definizione ed implementazione della classe Gino.App.Documents.documents
  * @author marco guidotti
  * @author abidibo
- * @version 0.1
- * @date 2014-03-06
+ * @copyright 2014 Otto srl MIT License http://www.opensource.org/licenses/mit-license.php
  */
-require_once('class.DocumentsCategory.php');
-require_once('class.DocumentsItem.php');
-/**
- * Class documents
- * @author marco guidotti <marco.guidotti@otto.to.it>
- * @author abidibo <abidibo@gmail.com>
- */
-class documents extends Controller
-{
 
-    protected $_data_dir,
-              $_data_www,
-              $_view_dir;
+/**
+ * @namespace Gino.App.Documents
+ * @description Namespace dell'applicazione Documenti
+ */
+namespace Gino\App\Documents;
+
+use \Gino\Loader;
+use \Gino\View;
+use \Gino\Form;
+use \Gino\Error;
+
+require_once('class.Category.php');
+require_once('class.Document.php');
+
+/**
+ * @brief Classe di tipo Gino.Controller per la gestione di documenti categorizzati
+ *
+ * @version 1.0.0
+ * @copyright 2014 Otto srl MIT License http://www.opensource.org/licenses/mit-license.php
+ * @authors Marco Guidotti guidottim@gmail.com
+ * @authors abidibo abidibo@gmail.com
+ */
+class documents extends \Gino\Controller
+{
 
     private $_ifp;
 
@@ -28,27 +39,11 @@ class documents extends Controller
      *
      * @param $instance_id id istanza
      *
-     * @return oggetto di tipo documents
+     * @return istanza di Gino.App.Documents.documents
      */
     public function __construct($instance_id)
     {
         parent::__construct($instance_id);
-
-        $this->_data_dir = $this->_data_dir.OS.$this->_instance_name;
-        $this->_data_www = $this->_data_www."/".$this->_instance_name;
-
-        $this->_view_dir = dirname(__FILE__).OS.'views';
-
-        /* options
-        $this->_optionsValue = array(
-            'title'=>_('TItolo'),
-        );
-        $this->_title = htmlChars($this->setOption('title', array('value'=>$this->_optionsValue['title'])));
-        $this->_options = loader::load('Options', array($this->_class_name, $this->_instance));
-        $this->_optionsLabels = array(
-            "title"=>_("Titolo"), 
-        );
-         */
 
         $this->_ifp = 10;
     }
@@ -56,16 +51,15 @@ class documents extends Controller
     /**
      * @brief Restituisce alcune proprietà della classe utili per la generazione di nuove istanze
      *
-     * @static
-     * @return lista delle proprietà utilizzate per la creazione di istanze di tipo documents
+     * @return array associativo di proprietà utilizzate per la creazione di istanze di tipo news (tabelle, css, viste, folders)
      */
     public static function getClassElements() 
     {
         return array(
             "tables"=>array(
                 'documents_category',
-                'documents_item',
-                'documents_item_category',
+                'documents_document',
+                'documents_document_category',
             ),
             "css"=>array(
                 'documents.css',
@@ -81,68 +75,47 @@ class documents extends Controller
     }
 
     /**
-     * @brief Metodo invocato quando viene eliminata un'istanza di tipo documents
+     * @brief Eliminazione istanza
      *
-     * Si esegue la cancellazione dei dati da db e l'eliminazione di file e directory 
-     * 
-     * @access public
-     * @return bool il risultato dell'operazione
+     * Si esegue la cancellazione dei dati da db e l'eliminazione di file e directory
+     *
+     * @return TRUE
      */
     public function deleteInstance() 
     {
         $this->requirePerm('can_admin');
 
-        /*
-         * delete documents items
-         */
-        $query = "SELECT id FROM ".DocumentsItem::$table." WHERE instance='$this->_instance'";
-        $a = $this->_db->selectquery($query);
-        if(sizeof($a)>0) {
-            foreach($a as $b) {
-                translation::deleteTranslations(DocumentsItem::$table, $b['id']);
-                $query = "DELETE FROM ".DocumentsItem::$table_categories." WHERE documentsitem_id='".$b['id']."'";	
-                $result = $this->_db->actionquery($query);
-            }
-        }
+        /* eliminazione items */
+        Document::deleteInstance($this);
+        /* eliminazione categorie */
+        Category::deleteInstance($this);
 
-        $query = "DELETE FROM ".DocumentsItem::$table." WHERE instance='$this->_instance'";	
-        $result = $this->_db->actionquery($query);
-
-        /*
-         * delete documents categories
-         */
-        $query = "SELECT id FROM ".DocumentsCategory::$table." WHERE instance='$this->_instance'";
-        $a = $this->_db->selectquery($query);
-        if(sizeof($a)>0) {
-            foreach($a as $b) {
-                translation::deleteTranslations(DocumentsCategory::$table, $b['id']);
-            }
-        }
-        $query = "DELETE FROM ".DocumentsCategory::$table." WHERE instance='$this->_instance'";	
-        $result = $this->_db->actionquery($query);
-
-        /*
-         * delete css files
-         */
+        /* eliminazione file css */
         $classElements = $this->getClassElements();
         foreach($classElements['css'] as $css) {
-            unlink(APP_DIR.OS.$this->_className.OS.baseFileName($css)."_".$this->_instance_name.".css");
+            @unlink(APP_DIR.OS.$this->_class_name.OS.\Gino\baseFileName($css)."_".$this->_instance_name.".css");
         }
 
-        /*
-         * delete folder structure
-         */
+        /* eliminazione views */
+        foreach($classElements['views'] as $k => $v) {
+            @unlink($this->_view_dir.OS.\Gino\baseFileName($k)."_".$this->_instance_name.".php");
+        }
+
+        /* eliminazione cartelle contenuti */
         foreach($classElements['folderStructure'] as $fld=>$fldStructure) {
-            $this->_registry->pub->deleteFileDir($fld.OS.$this->_instance_name, true);
+            \Gino\deleteFileDir($fld.OS.$this->_instance_name, true);
         }
 
-        return $result;
+        return TRUE;
     }
 
     /**
-     * @brief Metodi pubblici disponibili per inserimento in layout a menu
+     * @brief Definizione dei metodi pubblici che forniscono un output per il front-end
      *
-     * @return lista metodi pubblici
+     * Questo metodo viene letto dal motore di generazione dei layout (metodi non presenti nel file documents.ini) e dal motore di generazione
+     * di voci di menu (metodi presenti nel file documents.ini) per presentare una lista di output associati all'istanza di classe.
+     *
+     * @return array associativo NOME_METODO => array('label' => LABEL, 'permissions' => PERMESSI)
      */
     public static function outputFunctions() 
     {
@@ -155,64 +128,39 @@ class documents extends Controller
     }
 
     /**
-     * @brief Percorso assoluto alla cartella dei contenuti 
-     * 
-     * @return percorso assoluto
-     */
-    public function getBaseAbsPath() 
-    {
-        return $this->_data_dir.OS.$this->_instance_name;
-    }
-
-    /**
-     * @brief Percorso relativo alla cartella dei contenuti 
-     * 
-     * @return percorso relativo
-     */
-    public function getBasePath() 
-    {
-        return $this->_data_www.'/'.$this->_instance_name;
-    }
-
-    /**
-     * @brief Getter della proprietà instance_name 
-     * 
-     * @return nome dell'istanza
-     */
-    public function getInstanceName() 
-    {
-        return $this->_instance_name;
-    }
-
-    /**
      * @brief View public output
      *
-     * @return vista archive
+     * @param \Gino\Http\Request istanza di Gino.Http.Request
+     * @return Gino.Http.Response
      */
-    public function archive()
+    public function archive(\Gino\Http\Request $request)
     {
-        $order = cleanVar($_GET, 'o', 'string', '');
-        if(!$order) $order = 'insertion_date';
+
+        $this->_registry->addCss($this->_class_www."/documents_".$this->_instance_name.".css");
+        $order = \Gino\cleanVar($request->GET, 'o', 'string', '');
+        $dir = \Gino\cleanVar($request->GET, 'd', 'string', '');
+        if(!$order or !in_array($order, array('insertion_date', 'name', 'filesize'))) $order = 'insertion_date';
+        if(!$dir or $dir != 'asc') $dir = 'desc';
 
         if($this->userHasPerm('can_view_private')) {
-            $private = true;
+            $private = TRUE;
         }
         else {
-            $private = false;
+            $private = FALSE;
         }
 
-        if(isset($_POST['submit_search_documents'])) {
-            $name = cleanVar($_POST, 'name', 'string', '');
-            $ctg = cleanVar($_POST, 'category', 'int', '');
+        if(isset($request->POST['submit_search_documents'])) {
+            $name = \Gino\cleanVar($request->POST, 'name', 'string', '');
+            $ctg = \Gino\cleanVar($request->POST, 'category', 'int', '');
         }
         else {
-            $name = cleanVar($_REQUEST, 'name', 'string', '');
-            $ctg = cleanVar($_REQUEST, 'category', 'int', '');
+            $name = \Gino\cleanVar($request->REQUEST, 'name', 'string', '');
+            $ctg = \Gino\cleanVar($request->REQUEST, 'category', 'int', '');
         }
         $search_params = array();
-        $order_array = array('o' => $order);
+        $order_array = array('o' => $order, 'd' => $dir);
 
-        $table = DocumentsItem::$table;
+        $table = Document::$table;
         $where[] = "instance='$this->_instance'";
         if($name) {
             $where[] = "name LIKE '%".$name."%'";
@@ -220,7 +168,7 @@ class documents extends Controller
             $order_array['name'] = $name;
         }
         if($ctg) {
-            $where[] = "id IN (SELECT documentsitem_id FROM ".DocumentsItem::$table_categories." WHERE documentscategory_id='".$ctg."')";
+            $where[] = "id IN (SELECT document_id FROM ".Document::$table_categories." WHERE category_id='".$ctg."')";
             $search_params[] = "category=".$ctg;
             $order_array['category'] = $ctg;
         }
@@ -228,124 +176,148 @@ class documents extends Controller
             $where[] = "private='0'";
         }
 
-        $tot = $this->_registry->db->getNumRecords($table, implode(' AND ', $where));
+        $tot_records = $this->_registry->db->getNumRecords($table, implode(' AND ', $where));
 
-        $pagination = Loader::load('PageList', array($this->_ifp, $tot, 'array'));
-        $limit = array($pagination->start(), $this->_ifp);
+        $paginator = Loader::load('Paginator', array($tot_records, $this->_ifp));
+        $limit = $paginator->limitQuery();
 
-        $documents = DocumentsItem::objects($this, array('where' => implode(' AND ', $where), 'limit' => $limit, 'order' => $order));
-        $view = new View($this->_view_dir, 'documents_archive');
+        $documents = Document::objects($this, array('where' => implode(' AND ', $where), 'limit' => $limit, 'order' => $order.' '.$dir));
+
+        $view = new View($this->_view_dir, 'documents_archive_'.$this->_instance_name);
         $dict = array(
             'documents' => $documents,
-            'pagination_summary' => $pagination->reassumedPrint(),
-            'pagination_navigation' => $pagination->listReferenceGINO($this->_plink->aLink($this->_instance_name, 'archive', $order_array, '', array("basename"=>false))),
-            'search_params' => implode('&', $search_params),
-            'plink' => $this->_plink,
-            'base_url' => $this->_plink->aLink($this->_instance_name, 'archive', implode('&', $search_params)),
+            'pagination' => $paginator->pagination(),
+            'search_params' => $request->POST,
+            'router' => $this->_registry->router,
             'order' => $order,
+            'dir' => $dir,
             'form_search' => $this->formSearch(),
         );
 
-        return $view->render($dict);
+        $document = new \Gino\Document($view->render($dict));
+        return $document();
     }
 
+    /**
+     * @brief Form di ricerca documenti
+     * @description Questa vista presenta solamente un form che esegue la action sulla pagina in cui viene presentata.
+     *              Per avere utilità deve essere inserita in un contesto in cui compaer anche la vista archivio.
+     * 
+     * @return html, form di ricerca
+     */
     public function formSearch()
     {
-        loader::import('class', array('Form'));
+        $request = $this->_registry->request;
+
+        $this->_registry->addCss($this->_class_www."/documents_".$this->_instance_name.".css");
+
+        Loader::import('class', array('\Gino\Form'));
         $gform = new Form('search_document', 'post', '');
 
         if(isset($_POST['submit_search_documents'])) {
-            $name = cleanVar($_POST, 'name', 'string', '');
-            $ctg = cleanVar($_POST, 'category', 'int', '');
+            $name = \Gino\cleanVar($request->POST, 'name', 'string', '');
+            $ctg = \Gino\cleanVar($request->POST, 'category', 'int', '');
         }
         else {
-            $name = cleanVar($_REQUEST, 'name', 'string', '');
-            $ctg = cleanVar($_REQUEST, 'category', 'int', '');
+            $name = \Gino\cleanVar($request->REQUEST, 'name', 'string', '');
+            $ctg = \Gino\cleanVar($request->REQUEST, 'category', 'int', '');
         }
 
-        $form = $gform->open('', false, '');
-        $form .= $gform->cselect('category', $ctg, DocumentsCategory::getForSelect($this), _('Categoria'));
-        $form .= $gform->cinput('name', 'text', $name , _('Nome/Desc'), array('size' => 6));
+        $form = $gform->open($this->link($this->_instance_name, 'archive'), false, '');
+        $form .= $gform->cselect('category', $ctg, Category::getForSelect($this), _('Categoria'));
+        $form .= $gform->cinput('name', 'text', $name , _('Nome/Desc'), array('size' => 8));
         $form .= $gform->cinput('submit_search_documents', 'submit', _('filtra'), '', array());
         $form .= $gform->close();
 
-        $view = new View($this->_view_dir, 'documents_form_search');
+        $view = new View($this->_view_dir, 'documents_form_search_'.$this->_instance_name);
         $dict = array(
             'form' => $form
         );
 
         return $view->render($dict);
-
-    }
-
-    public function download()
-    {
-        $id = cleanVar($_GET, 'id', 'int', '');
-        $doc = new DocumentsItem($id, $this);
-        if($doc->private && !$this->userHasPerm('can_view_private')) {
-            error::raise404();
-        }
-
-        download($this->getBaseAbsPath().OS.$doc->filename);
     }
 
     /**
-     * @brief Backoffice
-     *
-     * @return interfaccia di backoffice
+     * @brief Download di un documento
+     * 
+     * @throws Gino.Exception.Exception404 se l'allegato non è recuperabile
+     * @param \Gino\Http\Request $request istanza di Gino.Http.Request
+     * @return Gino.Http.ResponseFile
      */
-    public function manageDoc()
+    public function download(\Gino\Http\Request $request)
+    {
+        $doc_id = \Gino\cleanVar($request->GET, 'id', 'int');
+
+        if($doc_id)
+        {
+            $doc = new Document($doc_id, $this);
+            if($doc->private && !$this->userHasPerm('can_view_private')) {
+                throw new \Gino\Exception\Exception404();
+            }
+
+            return \Gino\download($this->getBaseAbsPath().OS.$doc->filename);
+        }
+        else {
+            throw new \Gino\Exception\Exception404();
+        }
+    }
+
+    /**
+     * @brief Interfaccia di amministrazione del modulo
+     *
+     * @param \Gino\Http\Request istanza di Gino.Http.Request
+     * @return Gino.Http.Response backend di amministrazione del modulo
+     */
+    public function manageDoc(\Gino\Http\Request $request)
     {
         $this->requirePerm('can_admin');
 
-        $block = cleanVar($_REQUEST, 'block', 'string', '');
-        $method = 'manageDoc';
+        $block = \Gino\cleanVar($request->GET, 'block', 'string', '');
 
-        $link_frontend = "<a href=\"".$this->_home."?evt[$this->_instance_name-$method]&block=frontend\">"._("Frontend")."</a>";
-        /* $link_options = "<a href=\"".$this->_home."?evt[$this->_class_name-$method]&block=options\">"._("Opzioni")."</a>"; */
-        $link_ctg = "<a href=\"".$this->_home."?evt[".$this->_instance_name."-$method]&block=category\">"._("Categorie")."</a>";
-        $link_dft = "<a href=\"".$this->_home."?evt[".$this->_instance_name."-$method]\">"._("Documenti")."</a>";
-
+        $link_dft = sprintf('<a href="%s">%s</a>', $this->linkAdmin(), _('Documenti'));
+        $link_ctg = sprintf('<a href="%s">%s</a>', $this->linkAdmin(array(), 'block=category'), _('Categorie'));
+        $link_frontend = sprintf('<a href="%s">%s</a>', $this->linkAdmin(array(), 'block=frontend'), _('Frontend'));
         $sel_link = $link_dft;
 
         if($block == 'frontend' && $this->userHasPerm('can_admin')) {
-            $buffer = $this->manageFrontend();
+            $backend = $this->manageFrontend();
             $sel_link = $link_frontend;
         }
         elseif($block=='category') {
-            $buffer = $this->manageDocumentsCategory();
+            $backend = $this->manageCategory();
             $sel_link = $link_ctg;
         }
         else {
-            $buffer = $this->manageDocumentsItem();
+            $backend = $this->manageDocument();
         }
 
-        // groups privileges
-        $links_array = array($link_frontend, $link_ctg, $link_dft);
+        if(is_a($backend, '\Gino\Http\Response')) {
+            return $backend;
+        }
 
         $dict = array(
-          'title' => _('Gestione documenti'),
-          'links' => $links_array,
-          'selected_link' => $sel_link,
-          'content' => $buffer
+            'title' => _('Gestione documenti'),
+            'links' => array($link_frontend, $link_ctg, $link_dft),
+            'selected_link' => $sel_link,
+            'content' => $backend
         );
 
-        $view = new view(null, 'tab');
-
-        return $view->render($dict);
+        $view = new View(null, 'tab');
+        $document = new \Gino\Document($view->render($dict));
+        return $document();
     }
 
     /**
-     * @brief Interfaccia di amministrazione DocumentsCategory
+     * @brief Interfaccia di amministrazione categorie
      *
-     * @return interfaccia di amministrazione
+     * @return Gino.Http.Redirect oppure html, interfaccia di amministrazione
      */
-    public function manageDocumentsCategory()
+    public function manageCategory()
     {
         $admin_table = Loader::load('AdminTable', array($this, array()));
 
         $buffer = $admin_table->backoffice(
-            'DocumentsCategory',
+            'Category',
             array(), // display options
             array(), // form options
             array()  // fields options
@@ -355,16 +327,16 @@ class documents extends Controller
     }
 
     /**
-     * @brief Interfaccia di amministrazione DocumentsItem
+     * @brief Interfaccia di amministrazione documenti
      *
-     * @return interfaccia di amministrazione
+     * @return Gino.Http.Redirect oppure html, interfaccia di amministrazione
      */
-    public function manageDocumentsItem()
+    public function manageDocument()
     {
         $admin_table = Loader::load('AdminTable', array($this, array()));
 
         $buffer = $admin_table->backoffice(
-            'DocumentsItem',
+            'Document',
             array('list_display' => array('name', 'filename', 'filesize', 'private', 'insertion_date')), // display options
             array('removeFields' => array('filesize')), // form options
             array()  // fields options

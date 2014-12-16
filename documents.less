@@ -1,1 +1,22 @@
 /* Sorgente less documents */
+#search_document {
+    padding: 10px;
+    background: #f1f1f1;
+    border: 1px solid #e7e7e7;
+    &:before {
+        content: '';
+        font-family: "FontAwesome";
+        margin-right: 20px;
+    }
+    .form-row {
+        display: inline-block;
+        margin-right: 20px;
+        input[type=submit] {
+            font-size: 14px;
+            padding: 3px 20px;
+        }
+        label {
+            width: auto;
+        }
+    }
+}
